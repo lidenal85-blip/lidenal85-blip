@@ -31,3 +31,16 @@ class LeaseManager:
     def heartbeat(self, key: str):
         lock_key = f"lease:{key}"
         self.redis.expire(lock_key, self.ttl)
+
+class RedisLeaseProvider:
+    """Alias for LeaseManager."""
+    
+    def __init__(self, redis_url: str, ttl_seconds: int = 60):
+        from survey_finder.config.settings import settings
+        self.lease = LeaseManager(ttl_seconds=ttl_seconds)
+        
+    def acquire(self, key: str):
+        return self.lease.acquire(key)
+        
+    def heartbeat(self, key: str):
+        return self.lease.heartbeat(key)

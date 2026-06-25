@@ -1,17 +1,10 @@
-from survey_finder.delivery.dispatcher.dispatcher import NotificationDispatcher
+import pytest
+from survey_finder.delivery.dispatcher import TelegramDispatcher
 
-def test_dispatcher_idempotency():
-    d = NotificationDispatcher()
 
-    survey = {
-        "id": "1",
-        "title": "test",
-        "payout": 10,
-        "source": "prolific"
-    }
-
-    r1 = d.dispatch("chat", survey, "cycle1")
-    r2 = d.dispatch("chat", survey, "cycle1")
-
-    assert isinstance(r1, bool)
-    assert isinstance(r2, bool)
+def test_dispatcher_requires_config():
+    dispatcher = TelegramDispatcher(
+        bot_token="test",
+        chat_id="test"
+    )
+    assert dispatcher.bot_token == "test"

@@ -56,21 +56,27 @@ class AdapterService:
         self._active_adapters.clear()
 
 
-# Register adapters
-try:
-    from survey_finder.adapters.prolific.adapter import ProlificAdapter
-    AdapterRegistry.register("prolific", ProlificAdapter)
-except ImportError:
-    pass
+# Lazy registration - импорты внутри функции
+def register_adapters():
+    """Register all available adapters lazily."""
+    try:
+        from survey_finder.adapters.prolific.adapter import ProlificAdapter
+        AdapterRegistry.register("prolific", ProlificAdapter)
+    except ImportError as e:
+        logger.warning("prolific_adapter_not_available", error=str(e))
 
-try:
-    from survey_finder.adapters.cloudresearch.adapter import CloudResearchAdapter
-    AdapterRegistry.register("cloudresearch", CloudResearchAdapter)
-except ImportError:
-    pass
+    try:
+        from survey_finder.adapters.cloudresearch.adapter import CloudResearchAdapter
+        AdapterRegistry.register("cloudresearch", CloudResearchAdapter)
+    except ImportError as e:
+        logger.warning("cloudresearch_adapter_not_available", error=str(e))
 
-try:
-    from survey_finder.adapters.respondent.adapter import RespondentAdapter
-    AdapterRegistry.register("respondent", RespondentAdapter)
-except ImportError:
-    pass
+    try:
+        from survey_finder.adapters.respondent.adapter import RespondentAdapter
+        AdapterRegistry.register("respondent", RespondentAdapter)
+    except ImportError as e:
+        logger.warning("respondent_adapter_not_available", error=str(e))
+
+
+# Auto-register on import
+register_adapters()

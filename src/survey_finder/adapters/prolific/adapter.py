@@ -1,7 +1,7 @@
 import asyncio
 import json
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 
 from survey_finder.adapters.base import BaseAdapter, AdapterConfig, AdapterResult

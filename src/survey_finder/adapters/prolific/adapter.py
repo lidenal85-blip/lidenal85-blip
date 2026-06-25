@@ -1,14 +1,14 @@
 import asyncio
 import json
+import re
 from typing import Dict, Any, List
 from datetime import datetime, timedelta
-from playwright.async_api import Page
 
 from survey_finder.adapters.base import BaseAdapter, AdapterConfig, AdapterResult
-from survey_finder.adapters.playwright.context import browser_page
 from survey_finder.adapters.http import HTTPClient
 from survey_finder.adapters.session import SessionManager
 from survey_finder.adapters.errors import AdapterError, AdapterErrorType
+from survey_finder.adapters.playwright import HAVE_PLAYWRIGHT
 from survey_finder.contracts.survey import Survey
 from survey_finder.contracts.cycle import CycleContext
 from survey_finder.logging.logger import init_logger
@@ -28,15 +28,9 @@ class ProlificAdapter(BaseAdapter):
     async def initialize(self) -> None:
         """Initialize Prolific adapter."""
         logger.info("prolific_initializing")
-
-        # Check for existing session
         session = self.session_manager.get_session("prolific")
         if session and self.session_manager.is_valid("prolific"):
             logger.info("prolific_session_restored")
-            self._is_initialized = True
-            return
-
-        logger.info("prolific_no_session")
         self._is_initialized = True
 
     async def fetch_surveys(self, context: CycleContext) -> AdapterResult:
@@ -53,11 +47,13 @@ class ProlificAdapter(BaseAdapter):
                 surveys.extend(api_surveys)
                 logger.info("prolific_api_success", count=len(api_surveys))
 
-            # If API fails or returns few results, try browser
-            if len(surveys) < 5:
+            # If API returns few results and Playwright is available, try browser
+            if len(surveys) < 5 and HAVE_PLAYWRIGHT:
                 browser_surveys = await self._fetch_via_browser(context)
                 surveys.extend(browser_surveys)
                 logger.info("prolific_browser_success", count=len(browser_surveys))
+            elif len(surveys) < 5 and not HAVE_PLAYWRIGHT:
+                logger.info("prolific_browser_skipped", reason="playwright_not_installed")
 
         except Exception as e:
             logger.error("prolific_fetch_failed", error=str(e))
@@ -99,11 +95,8 @@ class ProlificAdapter(BaseAdapter):
                 if response.status_code == 200:
                     data = response.json()
                     return self._parse_api_response(data)
-
                 elif response.status_code == 401:
-                    # Need to login via browser
                     return []
-
                 else:
                     logger.warning("prolific_api_error", status=response.status_code)
                     return []
@@ -114,29 +107,32 @@ class ProlificAdapter(BaseAdapter):
 
     async def _fetch_via_browser(self, context: CycleContext) -> List[Survey]:
         """Fetch surveys via browser automation."""
+        if not HAVE_PLAYWRIGHT:
+            return []
+
         surveys: List[Survey] = []
 
         try:
+            from survey_finder.adapters.playwright.context import browser_page
+
             async with browser_page(
                 headless=True,
                 user_agent=self._default_user_agent()
             ) as page:
+                if page is None:
+                    return []
 
-                # Navigate to Prolific
                 await page.goto(f"{self.base_url}/studies", wait_until="networkidle")
 
-                # Check if logged in
                 if await page.locator("text=Login").count() > 0:
                     logger.warning("prolific_login_required")
                     return []
 
-                # Wait for studies to load
                 await page.wait_for_selector("[data-testid='study-card']", timeout=30000)
 
-                # Extract study data
                 study_cards = await page.locator("[data-testid='study-card']").all()
 
-                for card in study_cards[:10]:  # Limit to 10
+                for card in study_cards[:10]:
                     try:
                         title = await card.locator("[data-testid='study-title']").text_content() or "Untitled"
                         reward = await card.locator("[data-testid='study-reward']").text_content()
@@ -157,7 +153,6 @@ class ProlificAdapter(BaseAdapter):
 
         except Exception as e:
             logger.error("prolific_browser_failed", error=str(e))
-            raise
 
         return surveys
 
@@ -187,8 +182,6 @@ class ProlificAdapter(BaseAdapter):
         if not text:
             return 0.0
         try:
-            # Extract number from text like "£5.00" or "$10.00"
-            import re
             match = re.search(r"[\d.]+", text)
             if match:
                 return float(match.group())
@@ -201,7 +194,6 @@ class ProlificAdapter(BaseAdapter):
         if not text:
             return 0
         try:
-            import re
             match = re.search(r"\d+", text)
             if match:
                 return int(match.group())

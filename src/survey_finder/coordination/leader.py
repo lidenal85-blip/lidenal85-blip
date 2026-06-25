@@ -1,44 +1,36 @@
 import time
-import threading
-import structlog
-from survey_finder.coordination.lease import RedisLeaseProvider
-from survey_finder.config.settings import settings
+from survey_finder.coordination.lease import LeaseManager
+from survey_finder.logging.logger import init_logger
 
-log = structlog.get_logger()
+logger = init_logger()
+
 
 class LeaderElectionService:
-    def __init__(self):
-        self.lease = RedisLeaseProvider()
-        self.running = False
-        self.is_leader_flag = False
+    """Distributed leader election using Redis lease."""
 
-    def start(self):
-        self.running = True
-        threading.Thread(target=self._loop, daemon=True).start()
+    def __init__(self, lease_manager: LeaseManager, service_id: str, ttl_seconds: int = 30):
+        self.lease_manager = lease_manager
+        self.service_id = service_id
+        self.ttl = ttl_seconds
+        self._is_leader = False
 
-    def _loop(self):
-        while self.running:
-            try:
-                if not self.is_leader_flag:
-                    self.is_leader_flag = self.lease.try_acquire()
-                    if self.is_leader_flag:
-                        log.info("leader_acquired", instance=self.lease.instance_id)
-
-                else:
-                    ok = self.lease.renew()
-                    if not ok:
-                        self.is_leader_flag = False
-                        log.warning("leader_lost")
-
-                time.sleep(settings.HEARTBEAT_SEC)
-
-            except Exception as e:
-                log.error("leader_election_error", error=str(e))
-                self.is_leader_flag = False
-                time.sleep(2)
+    def try_become_leader(self) -> bool:
+        """Try to acquire leadership lease."""
+        try:
+            with self.lease_manager.acquire("leader_lock"):
+                self._is_leader = True
+                logger.info("became_leader", service_id=self.service_id)
+                return True
+        except RuntimeError:
+            self._is_leader = False
+            logger.debug("leader_lock_held", service_id=self.service_id)
+            return False
 
     def is_leader(self) -> bool:
-        return self.is_leader_flag
+        """Check if this instance is the leader."""
+        return self._is_leader
 
-    def get_leader_id(self):
-        return self.lease.instance_id
+    def heartbeat(self):
+        """Extend leadership lease."""
+        if self._is_leader:
+            self.lease_manager.heartbeat("leader_lock")

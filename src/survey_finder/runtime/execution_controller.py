@@ -1,67 +1,61 @@
 import time
-import uuid
-import structlog
-
-from survey_finder.coordination.leader import LeaderElectionService
-from survey_finder.contracts.cycle import CycleContext
+import threading
+from uuid import uuid4
+from dataclasses import dataclass
+from survey_finder.logging.logger import init_logger
 from survey_finder.config.settings import settings
 
-log = structlog.get_logger()
+logger = init_logger()
+
+@dataclass(frozen=True)
+class CycleResult:
+    cycle_id: str
+    status: str
+    duration_ms: int
+
 
 class ExecutionController:
-    """
-    SINGLE ACTIVE EXECUTION GUARANTEE LAYER
-    """
+    """Single active cycle execution controller."""
 
-    def __init__(self, leader_service: LeaderElectionService):
-        self.leader_service = leader_service
-        self.instance_id = str(uuid.uuid4())
-        self.running = True
+    def __init__(self, cycle_timeout_sec: int = 60):
+        self.cycle_timeout_sec = cycle_timeout_sec
+        self._lock = threading.Lock()
+        self._active_cycle_id = None
 
-    def build_cycle_context(self) -> CycleContext:
-        return CycleContext(
-            leader_id=str(self.leader_service.lease.instance_id),
-            instance_id=self.instance_id
+    def _acquire(self) -> str:
+        if not self._lock.acquire(blocking=False):
+            raise RuntimeError("cycle_already_running")
+
+        cycle_id = str(uuid4())
+        self._active_cycle_id = cycle_id
+        return cycle_id
+
+    def _release(self):
+        self._active_cycle_id = None
+        self._lock.release()
+
+    def run_cycle(self, handler):
+        cycle_id = self._acquire()
+        start = time.time()
+
+        logger.info("cycle_start", cycle_id=cycle_id)
+
+        try:
+            handler(cycle_id)
+            status = "success"
+        except Exception as e:
+            logger.error("cycle_failed", cycle_id=cycle_id, error=str(e))
+            status = "failed"
+        finally:
+            self._release()
+
+        duration_ms = int((time.time() - start) * 1000)
+
+        logger.info(
+            "cycle_end",
+            cycle_id=cycle_id,
+            status=status,
+            duration_ms=duration_ms,
         )
 
-    def run_cycle(self, cycle: CycleContext):
-        """
-        PLACEHOLDER: deterministic execution boundary
-        """
-        log.info(
-            "cycle_started",
-            cycle_id=cycle.cycle_id,
-            leader_id=cycle.leader_id,
-            instance_id=cycle.instance_id
-        )
-
-        # deterministic simulation of pipeline stages
-        time.sleep(0.2)
-
-        log.info(
-            "cycle_finished",
-            cycle_id=cycle.cycle_id
-        )
-
-    def run(self):
-        """
-        MAIN ORCHESTRATION LOOP
-        """
-        log.info("execution_controller_started", instance_id=self.instance_id)
-
-        while self.running:
-            try:
-                # HARD GATE: only leader executes
-                if not self.leader_service.is_leader():
-                    log.info("standby_mode", instance_id=self.instance_id)
-                    time.sleep(settings.EXECUTION_LOOP_SLEEP)
-                    continue
-
-                cycle = self.build_cycle_context()
-                self.run_cycle(cycle)
-
-                time.sleep(settings.EXECUTION_LOOP_SLEEP)
-
-            except Exception as e:
-                log.error("execution_controller_error", error=str(e))
-                time.sleep(1)
+        return CycleResult(cycle_id, status, duration_ms)

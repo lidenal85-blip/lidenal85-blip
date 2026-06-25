@@ -1,16 +1,15 @@
 import logging
-import json
-import sys
+import structlog
 
-class Logger:
-    def __init__(self):
-        self.logger = logging.getLogger("survey-finder")
-        self.logger.setLevel(logging.INFO)
-        handler = logging.StreamHandler(sys.stdout)
-        self.logger.addHandler(handler)
 
-    def info(self, msg: str, **kwargs):
-        self.logger.info(json.dumps({"level": "info", "msg": msg, **kwargs}))
+def init_logger():
+    logging.basicConfig(level=logging.INFO)
 
-    def error(self, msg: str, **kwargs):
-        self.logger.error(json.dumps({"level": "error", "msg": msg, **kwargs}))
+    structlog.configure(
+        processors=[
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.JSONRenderer(),
+        ]
+    )
+
+    return structlog.get_logger()

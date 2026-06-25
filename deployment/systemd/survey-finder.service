@@ -1,0 +1,28 @@
+[Unit]
+Description=Survey Finder Service
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=survey
+Group=survey
+WorkingDirectory=/opt/survey-finder
+Environment="PATH=/opt/survey-finder/venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=/opt/survey-finder/.env
+ExecStart=/opt/survey-finder/venv/bin/uvicorn survey_finder.bootstrap.app:app --host 0.0.0.0 --port 8000
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=survey-finder
+
+# Security hardening
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

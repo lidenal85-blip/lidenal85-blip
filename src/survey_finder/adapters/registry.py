@@ -1,5 +1,5 @@
 from typing import Dict, Type, Optional
-from survey_finder.adapters.base import BaseAdapter, AdapterConfig
+from survey_finder.adapters.base.adapter import BaseAdapter, AdapterConfig
 
 
 class AdapterRegistry:

@@ -1,7 +1,7 @@
 import pytest
-from survey_finder.adapters.base import BaseAdapter, AdapterConfig
-from survey_finder.adapters.registry import AdapterRegistry
-from survey_finder.adapters.errors import AdapterError, AdapterErrorType
+from survey_finder.adapters import BaseAdapter, AdapterConfig
+from survey_finder.adapters import AdapterRegistry
+from survey_finder.adapters import AdapterError, AdapterErrorType
 
 
 class MockAdapter(BaseAdapter):

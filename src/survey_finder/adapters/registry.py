@@ -1,5 +1,8 @@
 from typing import Dict, Type, Optional
-from survey_finder.adapters.base.adapter import BaseAdapter, AdapterConfig
+from survey_finder.adapters.base import BaseAdapter, AdapterConfig
+from survey_finder.logging.logger import init_logger
+
+logger = init_logger()
 
 
 class AdapterRegistry:
@@ -10,6 +13,7 @@ class AdapterRegistry:
     @classmethod
     def register(cls, name: str, adapter_class: Type[BaseAdapter]) -> None:
         cls._adapters[name] = adapter_class
+        logger.info("adapter_registered", name=name)
 
     @classmethod
     def get(cls, name: str) -> Optional[Type[BaseAdapter]]:
@@ -46,6 +50,27 @@ class AdapterService:
         return adapter
 
     async def close_all(self) -> None:
-        for adapter in self._active_adapters.values():
+        for name, adapter in self._active_adapters.items():
             await adapter.close()
+            logger.info("adapter_closed", name=name)
         self._active_adapters.clear()
+
+
+# Register adapters
+try:
+    from survey_finder.adapters.prolific.adapter import ProlificAdapter
+    AdapterRegistry.register("prolific", ProlificAdapter)
+except ImportError:
+    pass
+
+try:
+    from survey_finder.adapters.cloudresearch.adapter import CloudResearchAdapter
+    AdapterRegistry.register("cloudresearch", CloudResearchAdapter)
+except ImportError:
+    pass
+
+try:
+    from survey_finder.adapters.respondent.adapter import RespondentAdapter
+    AdapterRegistry.register("respondent", RespondentAdapter)
+except ImportError:
+    pass

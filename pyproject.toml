@@ -16,3 +16,14 @@ dev = ["pytest>=8.0.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+dependencies = [
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "structlog>=24.1.0",
+  "fastapi>=0.110.0",
+  "uvicorn>=0.27.0",
+  "httpx>=0.26.0",
+  "redis>=5.0.0",
+  "playwright>=1.40.0",
+]

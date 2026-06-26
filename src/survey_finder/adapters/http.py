@@ -5,9 +5,9 @@ from datetime import datetime
 import time
 
 from survey_finder.adapters.errors import AdapterError, AdapterErrorType
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 class HTTPClient:

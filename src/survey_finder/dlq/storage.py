@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 
 from survey_finder.config.settings import settings
 from survey_finder.contracts.dlq import DLQItem
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 class DLQStorage:

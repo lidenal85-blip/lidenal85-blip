@@ -5,10 +5,10 @@ import redis
 import httpx
 
 from survey_finder.config.settings import settings
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 from survey_finder.hardening.metrics import metrics
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 @dataclass

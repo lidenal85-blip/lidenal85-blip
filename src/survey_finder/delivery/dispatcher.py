@@ -8,10 +8,10 @@ from survey_finder.idempotency.gate import RedisIdempotencyGate
 from survey_finder.buffer.queue import RedisBuffer
 from survey_finder.delivery.retry import RetryPolicy, RetryExecutor
 from survey_finder.delivery.templates import MessageTemplates
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 from survey_finder.contracts.dlq import DLQItem
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 class TelegramDispatcher:

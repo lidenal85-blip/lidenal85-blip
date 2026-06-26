@@ -1,8 +1,8 @@
 from typing import Dict, Type, Optional
 from survey_finder.adapters.base import BaseAdapter, AdapterConfig
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 class AdapterRegistry:

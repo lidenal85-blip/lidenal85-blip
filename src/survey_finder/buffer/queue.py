@@ -4,9 +4,9 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 from survey_finder.config.settings import settings
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 class RedisBuffer:

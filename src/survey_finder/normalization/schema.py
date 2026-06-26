@@ -2,9 +2,9 @@ from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, ValidationError
 
 from survey_finder.contracts.survey import Survey
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 class SchemaValidator:

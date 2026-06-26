@@ -2,10 +2,10 @@ import time
 import threading
 from uuid import uuid4
 from dataclasses import dataclass
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 from survey_finder.config.settings import settings
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 @dataclass(frozen=True)
 class CycleResult:

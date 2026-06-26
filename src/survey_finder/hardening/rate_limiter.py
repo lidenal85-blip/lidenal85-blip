@@ -4,9 +4,9 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Optional
 
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 @dataclass

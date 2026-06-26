@@ -15,9 +15,9 @@ from survey_finder.contracts.survey import Survey
 from survey_finder.contracts.user import UserProfile
 from survey_finder.contracts.cycle import CycleContext
 from survey_finder.pipeline.context import PipelineContext
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 class FetchStep:

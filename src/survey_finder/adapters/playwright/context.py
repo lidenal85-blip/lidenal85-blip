@@ -3,9 +3,9 @@ from typing import AsyncGenerator, Optional
 
 from survey_finder.adapters.playwright import HAVE_PLAYWRIGHT
 from survey_finder.adapters.playwright.browser import PlaywrightBrowser
-from survey_finder.logging.logger import init_logger
+from survey_finder.logging.logger import get_logger
 
-logger = init_logger()
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
